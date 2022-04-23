@@ -8,15 +8,25 @@ import (
 
 func mapPost(post *model.Post) *postService.Post {
 	postPb := &postService.Post{
-		Id: post.Id.Hex(),
+		Id:     post.Id.Hex(),
+		UserId: post.UserId,
+		Text:   post.Text,
+		//Photo: post.Photo,
+		Links:        post.Links,
+		CreationDate: post.CreationDate.String(),
 	}
 	return postPb
 }
 
 func mapPostPb(postPb *postService.Post) *model.Post {
 	id, _ := primitive.ObjectIDFromHex(postPb.Id)
+
 	post := &model.Post{
-		Id: id,
+		Id:     id,
+		UserId: postPb.UserId,
+		Text:   postPb.Text,
+		Links:  postPb.Links,
+		//Photo: postPb.Photo,
 	}
 	return post
 }

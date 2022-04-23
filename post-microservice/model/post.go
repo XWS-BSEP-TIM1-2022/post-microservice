@@ -7,7 +7,7 @@ import (
 
 type Post struct {
 	Id           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	UserId       string             `json:"userId"`
+	UserId       string             `json:"userId" bson:"userId"`
 	Text         string             `json:"text"`
 	Photo        string             `json:"photo"`
 	Links        []string           `json:"links"`
