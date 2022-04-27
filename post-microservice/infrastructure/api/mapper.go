@@ -30,3 +30,26 @@ func mapPostPb(postPb *postService.Post) *model.Post {
 	}
 	return post
 }
+
+func mapComment(comment *model.Comment) *postService.Comment {
+	commentPb := &postService.Comment{
+		Id:           comment.Id.Hex(),
+		UserId:       comment.UserId,
+		PostId:       comment.PostId,
+		Text:         comment.Text,
+		CreationDate: comment.CreationDate.String(),
+	}
+	return commentPb
+}
+
+func mapCommentPb(commentPb *postService.Comment) *model.Comment {
+	id, _ := primitive.ObjectIDFromHex(commentPb.Id)
+
+	comment := &model.Comment{
+		Id:     id,
+		UserId: commentPb.UserId,
+		PostId: commentPb.PostId,
+		Text:   commentPb.Text,
+	}
+	return comment
+}

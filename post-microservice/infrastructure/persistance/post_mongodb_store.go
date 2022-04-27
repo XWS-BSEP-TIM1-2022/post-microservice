@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	DATABASE   = "postsDB"
-	COLLECTION = "posts"
+	DATABASE        = "postsDB"
+	POST_COLLECTION = "posts"
 )
 
 type PostMongoDBStore struct {
@@ -19,7 +19,7 @@ type PostMongoDBStore struct {
 }
 
 func NewPostMongoDBStore(client *mongo.Client) model.PostStore {
-	posts := client.Database(DATABASE).Collection(COLLECTION)
+	posts := client.Database(DATABASE).Collection(POST_COLLECTION)
 	return &PostMongoDBStore{
 		posts: posts,
 	}

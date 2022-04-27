@@ -47,10 +47,14 @@ func (server *Server) GetCloser() io.Closer {
 
 func (server *Server) Start() {
 	mongoClient := server.initMongoClient()
+
 	postStore := server.initPostStore(mongoClient)
 	postService := server.initPostService(postStore)
-	postHandler := server.initPostHandler(postService)
 
+	commentStore := server.initCommentStore(mongoClient)
+	commentService := server.initCommentService(commentStore)
+
+	postHandler := server.initPostHandler(postService, commentService)
 	server.startGrpcServer(postHandler)
 }
 
@@ -84,6 +88,15 @@ func (server *Server) initPostService(store model.PostStore) *application.PostSe
 	return application.NewPostService(store)
 }
 
-func (server *Server) initPostHandler(service *application.PostService) *api.PostHandler {
-	return api.NewPostHandler(service)
+func (server *Server) initPostHandler(postService *application.PostService, commentService *application.CommentService) *api.PostHandler {
+	return api.NewPostHandler(postService, commentService)
+}
+
+func (server *Server) initCommentStore(client *mongo.Client) model.CommentStore {
+	store := persistance.NewCommentMongoDBStore(client)
+	return store
+}
+
+func (server *Server) initCommentService(store model.CommentStore) *application.CommentService {
+	return application.NewCommentService(store)
 }
