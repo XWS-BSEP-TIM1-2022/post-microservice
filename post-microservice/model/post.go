@@ -9,7 +9,7 @@ type Post struct {
 	Id           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	UserId       string             `json:"userId" bson:"userId"`
 	Text         string             `json:"text"`
-	Photo        string             `json:"photo"`
+	Image        string             `json:"image"`
 	Links        []string           `json:"links"`
 	CreationDate time.Time          `json:"creationDate"`
 }
