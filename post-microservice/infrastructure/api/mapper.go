@@ -53,3 +53,25 @@ func mapCommentPb(commentPb *postService.Comment) *model.Comment {
 	}
 	return comment
 }
+
+func mapReaction(reaction *model.Reaction) *postService.Reaction {
+	reactionPb := &postService.Reaction{
+		Id:     reaction.Id.Hex(),
+		UserId: reaction.UserId,
+		PostId: reaction.PostId,
+		Type:   reaction.Type,
+	}
+	return reactionPb
+}
+
+func mapReactionPb(reactionPb *postService.Reaction) *model.Reaction {
+	id, _ := primitive.ObjectIDFromHex(reactionPb.Id)
+
+	reaction := &model.Reaction{
+		Id:     id,
+		UserId: reactionPb.UserId,
+		PostId: reactionPb.PostId,
+		Type:   reactionPb.Type,
+	}
+	return reaction
+}

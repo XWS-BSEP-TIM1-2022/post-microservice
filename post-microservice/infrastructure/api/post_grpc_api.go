@@ -11,14 +11,16 @@ import (
 
 type PostHandler struct {
 	postService.UnimplementedPostServiceServer
-	postService    *application.PostService
-	commentService *application.CommentService
+	postService     *application.PostService
+	commentService  *application.CommentService
+	reactionService *application.ReactionService
 }
 
-func NewPostHandler(postService *application.PostService, commentService *application.CommentService) *PostHandler {
+func NewPostHandler(postService *application.PostService, commentService *application.CommentService, reactionService *application.ReactionService) *PostHandler {
 	return &PostHandler{
-		postService:    postService,
-		commentService: commentService,
+		postService:     postService,
+		commentService:  commentService,
+		reactionService: reactionService,
 	}
 }
 
@@ -208,6 +210,102 @@ func (handler *PostHandler) DeleteCommentRequest(ctx context.Context, in *postSe
 
 	id, _ := primitive.ObjectIDFromHex(in.Id)
 	handler.commentService.Delete(ctx, id)
+	response := &postService.EmptyRequest{}
+	return response, nil
+}
+
+/////////////////////////////// REACTIONS GRPC API ///////////////////////////////
+
+func (handler *PostHandler) GetReactionRequest(ctx context.Context, in *postService.ReactionIdRequest) (*postService.ReactionResponse, error) {
+	span := tracer.StartSpanFromContextMetadata(ctx, "GetRequest")
+	defer span.Finish()
+	ctx = tracer.ContextWithSpan(ctx, span)
+
+	id := in.Id
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	reaction, err := handler.reactionService.Get(ctx, objectId)
+	if err != nil {
+		return nil, err
+	}
+	reactionPb := mapReaction(reaction)
+	response := &postService.ReactionResponse{
+		Reaction: reactionPb,
+	}
+	return response, nil
+}
+
+func (handler *PostHandler) GetAllReactionsRequest(ctx context.Context, in *postService.EmptyRequest) (*postService.ReactionsResponse, error) {
+	span := tracer.StartSpanFromContextMetadata(ctx, "GetAllRequest")
+	defer span.Finish()
+	ctx = tracer.ContextWithSpan(context.Background(), span)
+
+	reactions, err := handler.reactionService.GetAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	response := &postService.ReactionsResponse{
+		Reactions: []*postService.Reaction{},
+	}
+	for _, reaction := range reactions {
+		current := mapReaction(reaction)
+		response.Reactions = append(response.Reactions, current)
+	}
+	return response, nil
+}
+
+func (handler *PostHandler) GetAllReactionsFromPostRequest(ctx context.Context, in *postService.PostReactionRequest) (*postService.ReactionsResponse, error) {
+	span := tracer.StartSpanFromContextMetadata(ctx, "GetAllFromPostRequest")
+	defer span.Finish()
+	ctx = tracer.ContextWithSpan(ctx, span)
+
+	postId := in.PostId
+	reactions, err := handler.reactionService.GetAllFromPost(ctx, postId)
+	if err != nil {
+		return nil, err
+	}
+	response := &postService.ReactionsResponse{
+		Reactions: []*postService.Reaction{},
+	}
+	for _, reaction := range reactions {
+		current := mapReaction(reaction)
+		response.Reactions = append(response.Reactions, current)
+	}
+	return response, nil
+}
+
+func (handler *PostHandler) CreateReactionRequest(ctx context.Context, in *postService.ReactionRequest) (*postService.ReactionResponse, error) {
+	span := tracer.StartSpanFromContextMetadata(ctx, "CreateRequest")
+	defer span.Finish()
+	ctx = tracer.ContextWithSpan(ctx, span)
+
+	postId := in.PostId
+	if in.Reaction.UserId == "" || postId == "" {
+		return nil, errors.New("not entered required fields")
+	}
+
+	reactionFromRequest := mapReactionPb(in.Reaction)
+	reactionFromRequest.PostId = postId
+	reaction, err := handler.reactionService.Create(ctx, reactionFromRequest)
+	if err != nil {
+		return nil, err
+	}
+	reactionPb := mapReaction(reaction)
+	response := &postService.ReactionResponse{
+		Reaction: reactionPb,
+	}
+	return response, nil
+}
+
+func (handler *PostHandler) DeleteReactionRequest(ctx context.Context, in *postService.ReactionIdRequest) (*postService.EmptyRequest, error) {
+	span := tracer.StartSpanFromContextMetadata(ctx, "DeleteRequest")
+	defer span.Finish()
+	ctx = tracer.ContextWithSpan(ctx, span)
+
+	id, _ := primitive.ObjectIDFromHex(in.Id)
+	handler.reactionService.Delete(ctx, id)
 	response := &postService.EmptyRequest{}
 	return response, nil
 }

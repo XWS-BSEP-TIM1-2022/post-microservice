@@ -54,7 +54,10 @@ func (server *Server) Start() {
 	commentStore := server.initCommentStore(mongoClient)
 	commentService := server.initCommentService(commentStore)
 
-	postHandler := server.initPostHandler(postService, commentService)
+	reactionStore := server.initReactionStore(mongoClient)
+	reactionService := server.initReactionService(reactionStore)
+
+	postHandler := server.initPostHandler(postService, commentService, reactionService)
 	server.startGrpcServer(postHandler)
 }
 
@@ -88,8 +91,8 @@ func (server *Server) initPostService(store model.PostStore) *application.PostSe
 	return application.NewPostService(store)
 }
 
-func (server *Server) initPostHandler(postService *application.PostService, commentService *application.CommentService) *api.PostHandler {
-	return api.NewPostHandler(postService, commentService)
+func (server *Server) initPostHandler(postService *application.PostService, commentService *application.CommentService, reactionService *application.ReactionService) *api.PostHandler {
+	return api.NewPostHandler(postService, commentService, reactionService)
 }
 
 func (server *Server) initCommentStore(client *mongo.Client) model.CommentStore {
@@ -99,4 +102,13 @@ func (server *Server) initCommentStore(client *mongo.Client) model.CommentStore 
 
 func (server *Server) initCommentService(store model.CommentStore) *application.CommentService {
 	return application.NewCommentService(store)
+}
+
+func (server *Server) initReactionStore(client *mongo.Client) model.ReactionStore {
+	store := persistance.NewReactionMongoDBStore(client)
+	return store
+}
+
+func (server *Server) initReactionService(store model.ReactionStore) *application.ReactionService {
+	return application.NewReactionService(store)
 }
