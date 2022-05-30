@@ -3,24 +3,31 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
+	connectionService "github.com/XWS-BSEP-TIM1-2022/dislinkt/util/proto/connection"
 	postService "github.com/XWS-BSEP-TIM1-2022/dislinkt/util/proto/post"
+	"github.com/XWS-BSEP-TIM1-2022/dislinkt/util/services"
 	"github.com/XWS-BSEP-TIM1-2022/dislinkt/util/tracer"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"post-microservice/application"
+	"post-microservice/startup/config"
 )
 
 type PostHandler struct {
 	postService.UnimplementedPostServiceServer
-	postService     *application.PostService
-	commentService  *application.CommentService
-	reactionService *application.ReactionService
+	postService      *application.PostService
+	commentService   *application.CommentService
+	reactionService  *application.ReactionService
+	connectionClient connectionService.ConnectionServiceClient
+	config           *config.Config
 }
 
-func NewPostHandler(postService *application.PostService, commentService *application.CommentService, reactionService *application.ReactionService) *PostHandler {
+func NewPostHandler(postService *application.PostService, commentService *application.CommentService, reactionService *application.ReactionService, config *config.Config) *PostHandler {
 	return &PostHandler{
-		postService:     postService,
-		commentService:  commentService,
-		reactionService: reactionService,
+		postService:      postService,
+		commentService:   commentService,
+		reactionService:  reactionService,
+		connectionClient: services.NewConnectionClient(fmt.Sprintf("%s:%s", config.ConnectionServiceHost, config.ConnectionServicePort)),
 	}
 }
 
@@ -40,6 +47,16 @@ func (handler *PostHandler) GetRequest(ctx context.Context, in *postService.Post
 	if err != nil {
 		return nil, err
 	}
+
+	isBlocked, _ := handler.connectionClient.IsBlockedAny(ctx, &connectionService.Block{
+		UserId:      in.LoggedUserId,
+		BlockUserId: post.UserId,
+	})
+
+	if isBlocked.Blocked {
+		return nil, errors.New("user is blocked")
+	}
+
 	postPb := mapPost(post)
 	response := &postService.PostResponse{
 		Post: postPb,
@@ -72,6 +89,16 @@ func (handler *PostHandler) GetAllFromUserRequest(ctx context.Context, in *postS
 	ctx = tracer.ContextWithSpan(ctx, span)
 
 	userId := in.UserId
+
+	isBlocked, _ := handler.connectionClient.IsBlockedAny(ctx, &connectionService.Block{
+		UserId:      in.LoggedUserId,
+		BlockUserId: userId,
+	})
+
+	if isBlocked.Blocked {
+		return nil, errors.New("user is blocked")
+	}
+
 	posts, err := handler.postService.GetAllFromUser(ctx, userId)
 	if err != nil {
 		return nil, err
@@ -134,6 +161,16 @@ func (handler *PostHandler) GetCommentRequest(ctx context.Context, in *postServi
 	if err != nil {
 		return nil, err
 	}
+
+	isBlocked, _ := handler.connectionClient.IsBlockedAny(ctx, &connectionService.Block{
+		UserId:      in.LoggedUserId,
+		BlockUserId: comment.UserId,
+	})
+
+	if isBlocked.Blocked {
+		return nil, errors.New("user is blocked")
+	}
+
 	commentPb := mapComment(comment)
 	response := &postService.CommentResponse{
 		Comment: commentPb,
@@ -175,6 +212,16 @@ func (handler *PostHandler) GetAllCommentsFromPostRequest(ctx context.Context, i
 	}
 	for _, comment := range comments {
 		current := mapComment(comment)
+
+		isBlocked, _ := handler.connectionClient.IsBlockedAny(ctx, &connectionService.Block{
+			UserId:      in.LoggedUserId,
+			BlockUserId: current.UserId,
+		})
+
+		if isBlocked.Blocked {
+			continue
+		}
+
 		response.Comments = append(response.Comments, current)
 	}
 	return response, nil
@@ -196,6 +243,16 @@ func (handler *PostHandler) CreateCommentRequest(ctx context.Context, in *postSe
 	if err != nil {
 		return nil, err
 	}
+
+	isBlocked, _ := handler.connectionClient.IsBlockedAny(ctx, &connectionService.Block{
+		UserId:      in.LoggedUserId,
+		BlockUserId: comment.UserId,
+	})
+
+	if isBlocked.Blocked {
+		return nil, errors.New("user is blocked")
+	}
+
 	commentPb := mapComment(comment)
 	response := &postService.CommentResponse{
 		Comment: commentPb,
@@ -229,6 +286,15 @@ func (handler *PostHandler) GetReactionRequest(ctx context.Context, in *postServ
 	reaction, err := handler.reactionService.Get(ctx, objectId)
 	if err != nil {
 		return nil, err
+	}
+
+	isBlocked, _ := handler.connectionClient.IsBlockedAny(ctx, &connectionService.Block{
+		UserId:      in.LoggedUserId,
+		BlockUserId: reaction.UserId,
+	})
+
+	if isBlocked.Blocked {
+		return nil, errors.New("user is blocked")
 	}
 	reactionPb := mapReaction(reaction)
 	response := &postService.ReactionResponse{
@@ -271,6 +337,14 @@ func (handler *PostHandler) GetAllReactionsFromPostRequest(ctx context.Context, 
 	}
 	for _, reaction := range reactions {
 		current := mapReaction(reaction)
+		isBlocked, _ := handler.connectionClient.IsBlockedAny(ctx, &connectionService.Block{
+			UserId:      in.LoggedUserId,
+			BlockUserId: current.UserId,
+		})
+
+		if isBlocked.Blocked {
+			continue
+		}
 		response.Reactions = append(response.Reactions, current)
 	}
 	return response, nil
@@ -291,6 +365,14 @@ func (handler *PostHandler) CreateReactionRequest(ctx context.Context, in *postS
 	reaction, err := handler.reactionService.Create(ctx, reactionFromRequest)
 	if err != nil {
 		return nil, err
+	}
+	isBlocked, _ := handler.connectionClient.IsBlockedAny(ctx, &connectionService.Block{
+		UserId:      in.LoggedUserId,
+		BlockUserId: reaction.UserId,
+	})
+
+	if isBlocked.Blocked {
+		return nil, errors.New("user is blocked")
 	}
 	reactionPb := mapReaction(reaction)
 	response := &postService.ReactionResponse{

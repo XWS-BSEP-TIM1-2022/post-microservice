@@ -92,7 +92,7 @@ func (server *Server) initPostService(store model.PostStore) *application.PostSe
 }
 
 func (server *Server) initPostHandler(postService *application.PostService, commentService *application.CommentService, reactionService *application.ReactionService) *api.PostHandler {
-	return api.NewPostHandler(postService, commentService, reactionService)
+	return api.NewPostHandler(postService, commentService, reactionService, server.config)
 }
 
 func (server *Server) initCommentStore(client *mongo.Client) model.CommentStore {
