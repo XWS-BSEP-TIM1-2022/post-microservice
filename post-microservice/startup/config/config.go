@@ -13,6 +13,8 @@ type Config struct {
 	ExpiresIn             time.Duration
 	ConnectionServiceHost string
 	ConnectionServicePort string
+	MessageServiceHost    string
+	MessageServicePort    string
 }
 
 func NewConfig() *Config {
@@ -24,6 +26,8 @@ func NewConfig() *Config {
 		ExpiresIn:             30 * time.Minute,
 		ConnectionServiceHost: getEnv("CONNECTION_SERVICE_HOST", "localhost"),
 		ConnectionServicePort: getEnv("CONNECTION_SERVICE_PORT", "8087"),
+		MessageServiceHost:    getEnv("MESSAGE_SERVICE_HOST", "localhost"),
+		MessageServicePort:    getEnv("MESSAGE_SERVICE_PORT", "8089"),
 	}
 }
 

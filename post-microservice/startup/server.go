@@ -52,7 +52,7 @@ func (server *Server) Start() {
 	postService := server.initPostService(postStore)
 
 	commentStore := server.initCommentStore(mongoClient)
-	commentService := server.initCommentService(commentStore)
+	commentService := server.initCommentService(commentStore, postStore)
 
 	reactionStore := server.initReactionStore(mongoClient)
 	reactionService := server.initReactionService(reactionStore)
@@ -88,7 +88,7 @@ func (server *Server) initPostStore(client *mongo.Client) model.PostStore {
 }
 
 func (server *Server) initPostService(store model.PostStore) *application.PostService {
-	return application.NewPostService(store)
+	return application.NewPostService(store, server.config)
 }
 
 func (server *Server) initPostHandler(postService *application.PostService, commentService *application.CommentService, reactionService *application.ReactionService) *api.PostHandler {
@@ -100,8 +100,8 @@ func (server *Server) initCommentStore(client *mongo.Client) model.CommentStore 
 	return store
 }
 
-func (server *Server) initCommentService(store model.CommentStore) *application.CommentService {
-	return application.NewCommentService(store)
+func (server *Server) initCommentService(store model.CommentStore, postStore model.PostStore) *application.CommentService {
+	return application.NewCommentService(store, postStore, server.config)
 }
 
 func (server *Server) initReactionStore(client *mongo.Client) model.ReactionStore {
