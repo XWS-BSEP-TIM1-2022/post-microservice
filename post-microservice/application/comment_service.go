@@ -29,22 +29,28 @@ func NewCommentService(store model.CommentStore, postStore model.PostStore, c *c
 }
 
 func (service *CommentService) Get(ctx context.Context, id primitive.ObjectID) (*model.Comment, error) {
+	Log.Info("Get comment by id: " + id.Hex())
 	return service.store.Get(ctx, id)
 }
 
 func (service *CommentService) GetAll(ctx context.Context) ([]*model.Comment, error) {
+	Log.Info("Get all comments")
 	return service.store.GetAll(ctx)
 }
 
 func (service *CommentService) GetAllFromPost(ctx context.Context, postId string) ([]*model.Comment, error) {
+	Log.Info("Get all comments of post with id: " + postId)
 	return service.store.GetAllFromPost(ctx, postId)
 }
 
 func (service *CommentService) Create(ctx context.Context, comment *model.Comment) (*model.Comment, error) {
+	Log.Info("Create new comment")
+
 	comment.CreationDate = time.Now()
 	retVal, err := service.store.Create(ctx, comment)
 
 	if err != nil {
+		Log.Error("Error while creating comment- " + err.Error())
 		return nil, err
 	}
 
@@ -54,17 +60,21 @@ func (service *CommentService) Create(ctx context.Context, comment *model.Commen
 }
 
 func (service *CommentService) Delete(ctx context.Context, id primitive.ObjectID) error {
+	Log.Info("Deleting comment with id: " + id.Hex())
 	return service.store.Delete(ctx, id)
 }
 
 func (service *CommentService) sendNotification(ctx context.Context, comment *model.Comment) error {
+	Log.Info("Sending notification for comment creation by user with id: " + comment.UserId)
 
 	id, err := primitive.ObjectIDFromHex(comment.PostId)
 	if err != nil {
+		Log.Error("Error sending notification for comment creation: " + err.Error())
 		return err
 	}
 	post, err := service.postStore.Get(ctx, id)
 	if err != nil {
+		Log.Error("Error sending notification for comment creation: " + err.Error())
 		return err
 	}
 
